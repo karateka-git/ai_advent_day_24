@@ -31,6 +31,7 @@ tasks.named<CreateStartScripts>("startScripts") {
 
 dependencies {
     implementation("com.typesafe:config:1.4.3")
+    implementation("org.apache.pdfbox:pdfbox:3.0.3")
     runtimeOnly("org.slf4j:slf4j-simple:2.0.17")
     testImplementation(kotlin("test"))
 }
