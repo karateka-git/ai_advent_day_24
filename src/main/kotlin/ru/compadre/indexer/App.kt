@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets
  */
 fun main(args: Array<String>) {
     configureUtf8Console()
+    configureLogging()
 
     val config = AppConfigLoader.load()
     val parser: CliCommandParser = DefaultCliCommandParser()
@@ -43,6 +44,11 @@ fun main(args: Array<String>) {
     }
 
     println(formatter.format(commandHandler.handle(command, config)))
+}
+
+private fun configureLogging() {
+    System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "warn")
+    System.setProperty("org.slf4j.simpleLogger.log.org.apache.pdfbox", "error")
 }
 
 private fun configureUtf8Console() {
