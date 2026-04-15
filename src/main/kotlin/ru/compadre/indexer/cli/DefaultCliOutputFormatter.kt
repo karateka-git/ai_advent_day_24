@@ -5,6 +5,7 @@ import ru.compadre.indexer.workflow.result.ChunkPreviewResult
 import ru.compadre.indexer.workflow.result.CommandResult
 import ru.compadre.indexer.workflow.result.DocumentLoadResult
 import ru.compadre.indexer.workflow.result.HelpResult
+import ru.compadre.indexer.workflow.result.IndexPersistResult
 
 /**
  * Форматтер CLI-вывода для стартовых этапов проекта.
@@ -12,6 +13,7 @@ import ru.compadre.indexer.workflow.result.HelpResult
 class DefaultCliOutputFormatter : CliOutputFormatter {
     override fun format(result: CommandResult): String = when (result) {
         is HelpResult -> helpText(result)
+        is IndexPersistResult -> indexPersistText(result)
         is ChunkPreviewResult -> chunkPreviewText(result)
         is DocumentLoadResult -> documentLoadText(result)
     }
@@ -33,7 +35,34 @@ class DefaultCliOutputFormatter : CliOutputFormatter {
         add("  chunking.fixedSize = ${result.fixedSize}")
         add("  chunking.overlap = ${result.overlap}")
         add("")
-        add("Текущий статус: fixed и structured chunking подключены, preview embeddings активен.")
+        add("Текущий статус: index сохраняет SQLite-индекс, compare показывает preview chunking и embeddings.")
+    }.joinToString(separator = System.lineSeparator())
+
+    private fun indexPersistText(result: IndexPersistResult): String = buildList {
+        add("Команда `index` завершила локальную индексацию.")
+        add("")
+        add("Параметры запуска:")
+        add("  inputDir = ${result.inputDir}")
+        add("  strategy = ${result.strategyLabel}")
+        add("  outputDir = ${result.outputDir}")
+        add("  database = ${result.databasePath}")
+        add("")
+        add("Сводка индексации:")
+        add("  documents = ${result.documentsCount}")
+        add("  chunksPrepared = ${result.chunksPrepared}")
+        add("  chunksStored = ${result.chunksStored}")
+        add("  embeddingsStored = ${result.embeddingsStored}")
+        add("  strategiesStored = ${result.strategiesStored.joinToString()}")
+
+        if (result.skippedChunkIds.isEmpty()) {
+            add("  skippedChunks = 0")
+        } else {
+            add("  skippedChunks = ${result.skippedChunkIds.size}")
+            add("Пропущенные чанки:")
+            result.skippedChunkIds.take(10).forEach { chunkId ->
+                add("  - $chunkId")
+            }
+        }
     }.joinToString(separator = System.lineSeparator())
 
     private fun chunkPreviewText(result: ChunkPreviewResult): String = buildList {

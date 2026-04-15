@@ -7,7 +7,10 @@ import ru.compadre.indexer.embedding.EmbeddingService
 import ru.compadre.indexer.loader.DocumentLoader
 import ru.compadre.indexer.model.ChunkingStrategy
 import ru.compadre.indexer.model.DocumentChunk
+import ru.compadre.indexer.model.EmbeddedChunk
 import ru.compadre.indexer.model.RawDocument
+import ru.compadre.indexer.storage.IndexStore
+import ru.compadre.indexer.storage.SqliteIndexStore
 import ru.compadre.indexer.workflow.command.CompareCommand
 import ru.compadre.indexer.workflow.command.HelpCommand
 import ru.compadre.indexer.workflow.command.IndexCommand
@@ -16,13 +19,15 @@ import ru.compadre.indexer.workflow.result.ChunkEmbeddingPreview
 import ru.compadre.indexer.workflow.result.ChunkPreviewResult
 import ru.compadre.indexer.workflow.result.CommandResult
 import ru.compadre.indexer.workflow.result.HelpResult
+import ru.compadre.indexer.workflow.result.IndexPersistResult
 import java.nio.file.Path
 
 /**
- * Стартовая реализация обработчика команд для этапов загрузки корпуса, chunking и preview embeddings.
+ * Стартовая реализация обработчика команд для этапов загрузки корпуса, chunking, embeddings и SQLite storage.
  */
 class DefaultWorkflowCommandHandler(
     private val documentLoader: DocumentLoader = DocumentLoader(),
+    private val indexStore: IndexStore = SqliteIndexStore(),
 ) : WorkflowCommandHandler {
     override suspend fun handle(command: WorkflowCommand, config: AppConfig): CommandResult = when (command) {
         HelpCommand -> HelpResult(
@@ -34,13 +39,11 @@ class DefaultWorkflowCommandHandler(
             overlap = config.chunking.overlap,
         )
 
-        is IndexCommand -> buildChunkPreviewResult(
-            commandName = "index",
+        is IndexCommand -> runIndexing(
             inputDir = command.inputDir ?: config.app.inputDir,
             config = config,
             strategy = command.strategy,
             allStrategies = command.allStrategies,
-            strategyLabel = command.strategy?.id ?: if (command.allStrategies) "all" else "fixed",
         )
 
         is CompareCommand -> buildChunkPreviewResult(
@@ -50,6 +53,46 @@ class DefaultWorkflowCommandHandler(
             strategy = null,
             allStrategies = true,
             strategyLabel = "fixed vs structured",
+        )
+    }
+
+    private suspend fun runIndexing(
+        inputDir: String,
+        config: AppConfig,
+        strategy: ChunkingStrategy?,
+        allStrategies: Boolean,
+    ): IndexPersistResult {
+        val documents = documentLoader.load(Path.of(inputDir))
+        val chunks = buildChunks(
+            documents = documents,
+            config = config,
+            strategy = strategy,
+            allStrategies = allStrategies,
+        )
+        val skippedChunkIds = mutableListOf<String>()
+        val embeddedChunks = buildEmbeddedChunks(chunks, config, skippedChunkIds)
+        val databasePath = resolveDatabasePath(
+            outputDir = config.app.outputDir,
+            strategy = strategy,
+            allStrategies = allStrategies,
+        )
+        val storedSummary = indexStore.save(
+            databasePath = databasePath,
+            documents = documents,
+            embeddedChunks = embeddedChunks,
+        )
+
+        return IndexPersistResult(
+            inputDir = inputDir,
+            outputDir = config.app.outputDir,
+            databasePath = databasePath.toAbsolutePath().toString(),
+            strategyLabel = strategy?.id ?: if (allStrategies) "all" else "fixed",
+            documentsCount = documents.size,
+            chunksPrepared = chunks.size,
+            chunksStored = storedSummary.chunksCount,
+            embeddingsStored = storedSummary.embeddingsCount,
+            skippedChunkIds = skippedChunkIds,
+            strategiesStored = storedSummary.strategies,
         )
     }
 
@@ -103,6 +146,34 @@ class DefaultWorkflowCommandHandler(
         }
     }
 
+    private suspend fun buildEmbeddedChunks(
+        chunks: List<DocumentChunk>,
+        config: AppConfig,
+        skippedChunkIds: MutableList<String>,
+    ): List<EmbeddedChunk> {
+        if (chunks.isEmpty()) {
+            return emptyList()
+        }
+
+        val embeddingService = EmbeddingService(config.ollama)
+        return try {
+            chunks.mapNotNull { chunk ->
+                val embedding = embeddingService.generate(chunk.text)
+                if (embedding == null) {
+                    skippedChunkIds += chunk.metadata.chunkId
+                    null
+                } else {
+                    EmbeddedChunk(
+                        chunk = chunk,
+                        embedding = embedding,
+                    )
+                }
+            }
+        } finally {
+            embeddingService.close()
+        }
+    }
+
     private suspend fun buildEmbeddingPreview(
         chunks: List<DocumentChunk>,
         config: AppConfig,
@@ -126,6 +197,20 @@ class DefaultWorkflowCommandHandler(
         } finally {
             embeddingService.close()
         }
+    }
+
+    private fun resolveDatabasePath(
+        outputDir: String,
+        strategy: ChunkingStrategy?,
+        allStrategies: Boolean,
+    ): Path {
+        val fileName = when {
+            allStrategies -> "index-all.db"
+            strategy == ChunkingStrategy.STRUCTURED -> "index-structured.db"
+            else -> "index-fixed.db"
+        }
+
+        return Path.of(outputDir).resolve(fileName)
     }
 
     private companion object {

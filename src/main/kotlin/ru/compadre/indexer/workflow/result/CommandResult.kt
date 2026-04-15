@@ -32,6 +32,22 @@ data class DocumentLoadResult(
 ) : CommandResult
 
 /**
+ * Результат полной индексации корпуса в локальный SQLite-индекс.
+ */
+data class IndexPersistResult(
+    val inputDir: String,
+    val outputDir: String,
+    val databasePath: String,
+    val strategyLabel: String,
+    val documentsCount: Int,
+    val chunksPrepared: Int,
+    val chunksStored: Int,
+    val embeddingsStored: Int,
+    val skippedChunkIds: List<String>,
+    val strategiesStored: List<String>,
+) : CommandResult
+
+/**
  * Результат предпросмотра chunking на текущем этапе.
  */
 data class ChunkPreviewResult(
