@@ -13,10 +13,13 @@ import kotlin.io.path.nameWithoutExtension
 class DocumentLoader(
     private val fileScanner: FileScanner = FileScanner(),
 ) {
-    fun load(inputDir: Path): List<RawDocument> =
-        fileScanner.scan(inputDir).map { file ->
+    fun load(inputDir: Path): List<RawDocument> {
+        InputDirectoryValidator.validate(inputDir)
+
+        return fileScanner.scan(inputDir).map { file ->
             toRawDocument(file)
         }
+    }
 
     private fun toRawDocument(file: Path): RawDocument {
         val sourceType = requireNotNull(SourceTypeDetector.detect(file)) {
