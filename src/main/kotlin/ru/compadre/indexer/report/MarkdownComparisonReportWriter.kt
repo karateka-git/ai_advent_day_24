@@ -14,47 +14,47 @@ class MarkdownComparisonReportWriter {
     }
 
     fun render(report: ChunkingComparisonReport): String = buildList {
-        add("# Chunking Comparison Report")
+        add("# Отчёт по сравнению chunking-стратегий")
         add("")
-        add("- inputDir: `${report.inputDir}`")
-        add("- documents: `${report.documentsCount}`")
+        add("- Входная директория: `${report.inputDir}`")
+        add("- Количество документов: `${report.documentsCount}`")
         add("")
-        add("## Fixed")
+        add("## Стратегия fixed")
         addAll(renderMetrics(report.fixedMetrics))
         add("")
-        add("## Structured")
+        add("## Стратегия structured")
         addAll(renderMetrics(report.structuredMetrics))
         add("")
-        add("## Summary")
+        add("## Краткий вывод")
         add(
             if (report.fixedMetrics.chunksCount == report.structuredMetrics.chunksCount) {
-                "Both strategies produced the same number of chunks."
+                "Обе стратегии дали одинаковое количество чанков."
             } else if (report.fixedMetrics.chunksCount > report.structuredMetrics.chunksCount) {
-                "Structured produced fewer chunks than fixed."
+                "Structured дала меньше чанков, чем fixed."
             } else {
-                "Structured produced more chunks than fixed."
+                "Structured дала больше чанков, чем fixed."
             },
         )
         add(
             if (report.fixedMetrics.averageLength == report.structuredMetrics.averageLength) {
-                "Average chunk length is identical."
+                "Средняя длина чанка совпадает."
             } else if (report.fixedMetrics.averageLength > report.structuredMetrics.averageLength) {
-                "Fixed chunks are longer on average."
+                "У fixed чанки в среднем длиннее."
             } else {
-                "Structured chunks are longer on average."
+                "У structured чанки в среднем длиннее."
             },
         )
     }.joinToString(separator = System.lineSeparator())
 
     private fun renderMetrics(metrics: ChunkingStrategyMetrics): List<String> = buildList {
-        add("- chunksCount: `${metrics.chunksCount}`")
-        add("- averageLength: `${metrics.averageLength.roundToInt()}`")
-        add("- minLength: `${metrics.minLength}`")
-        add("- maxLength: `${metrics.maxLength}`")
+        add("- Количество чанков: `${metrics.chunksCount}`")
+        add("- Средняя длина: `${metrics.averageLength.roundToInt()}`")
+        add("- Минимальная длина: `${metrics.minLength}`")
+        add("- Максимальная длина: `${metrics.maxLength}`")
         if (metrics.lengthBuckets.isEmpty()) {
-            add("- distribution: empty")
+            add("- Распределение: пусто")
         } else {
-            add("- distribution:")
+            add("- Распределение:")
             metrics.lengthBuckets.forEach { bucket ->
                 add("  - `${bucket.rangeLabel}`: `${bucket.count}`")
             }
