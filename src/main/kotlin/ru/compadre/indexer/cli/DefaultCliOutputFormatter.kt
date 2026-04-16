@@ -50,16 +50,16 @@ class DefaultCliOutputFormatter : CliOutputFormatter {
         add("  database = ${result.databasePath}")
         add("")
         add("Сводка индексации:")
-        add("  documents = ${result.documentsCount}")
-        add("  chunksPrepared = ${result.chunksPrepared}")
-        add("  chunksStored = ${result.chunksStored}")
-        add("  embeddingsStored = ${result.embeddingsStored}")
-        add("  strategiesStored = ${result.strategiesStored.joinToString()}")
+        add("  Количество документов = ${result.documentsCount}")
+        add("  Подготовлено чанков = ${result.chunksPrepared}")
+        add("  Сохранено чанков = ${result.chunksStored}")
+        add("  Сохранено embeddings = ${result.embeddingsStored}")
+        add("  Стратегии в индексе = ${result.strategiesStored.joinToString()}")
 
         if (result.skippedChunkIds.isEmpty()) {
-            add("  skippedChunks = 0")
+            add("  Пропущено чанков = 0")
         } else {
-            add("  skippedChunks = ${result.skippedChunkIds.size}")
+            add("  Пропущено чанков = ${result.skippedChunkIds.size}")
             add("Пропущенные чанки:")
             result.skippedChunkIds.take(10).forEach { chunkId ->
                 add("  - $chunkId")
