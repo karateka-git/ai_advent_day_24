@@ -11,8 +11,8 @@ import kotlin.math.min
  * Режет документ на чанки фиксированного размера с overlap.
  */
 class FixedSizeChunker(
-    private val chunkSize: Int,
-    private val overlap: Int,
+    val chunkSize: Int,
+    val overlap: Int,
 ) : Chunker {
     init {
         require(chunkSize > 0) { "chunkSize должен быть больше 0." }

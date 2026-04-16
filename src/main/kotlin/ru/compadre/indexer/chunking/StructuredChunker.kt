@@ -13,7 +13,7 @@ class StructuredChunker(
     private val fallbackChunker: FixedSizeChunker,
 ) : Chunker {
     override fun chunk(document: RawDocument): List<DocumentChunk> {
-        val chunks = when (document.sourceType) {
+        val rawChunks = when (document.sourceType) {
             SourceType.README,
             SourceType.MARKDOWN -> chunkMarkdown(document)
 
@@ -21,6 +21,8 @@ class StructuredChunker(
             SourceType.TEXT,
             SourceType.PDF -> chunkByParagraphs(document)
         }
+
+        val chunks = normalizeStructuredChunks(document, rawChunks)
 
         return if (chunks.isEmpty()) {
             fallbackChunker.chunk(document).map { chunk ->
@@ -146,5 +148,111 @@ class StructuredChunker(
             strategy = ChunkingStrategy.STRUCTURED,
             text = chunkText,
         )
+    }
+
+    private fun normalizeStructuredChunks(
+        document: RawDocument,
+        chunks: List<DocumentChunk>,
+    ): List<DocumentChunk> {
+        if (chunks.isEmpty()) {
+            return emptyList()
+        }
+
+        val mergedChunks = when (document.sourceType) {
+            SourceType.TEXT,
+            SourceType.PDF -> mergeSmallChunks(document, chunks)
+            else -> chunks
+        }
+
+        val resizedChunks = mergedChunks.flatMap { chunk ->
+            if (chunk.text.length > fallbackChunker.chunkSize) {
+                splitLargeChunk(document, chunk)
+            } else {
+                listOf(chunk)
+            }
+        }
+
+        return resizedChunks.mapIndexed { index, chunk ->
+            chunk.copy(
+                metadata = chunk.metadata.copy(
+                    chunkId = "${document.documentId}#structured-$index",
+                ),
+            )
+        }
+    }
+
+    private fun mergeSmallChunks(
+        document: RawDocument,
+        chunks: List<DocumentChunk>,
+    ): List<DocumentChunk> {
+        val merged = mutableListOf<DocumentChunk>()
+        var pending: DocumentChunk? = null
+
+        chunks.forEach { chunk ->
+            pending = when {
+                pending == null -> chunk
+                pending.text.length < MIN_STRUCTURED_CHUNK_LENGTH -> mergeChunks(document, pending!!, chunk)
+                else -> {
+                    merged += pending!!
+                    chunk
+                }
+            }
+        }
+
+        pending?.let { lastChunk ->
+            if (merged.isNotEmpty() && lastChunk.text.length < MIN_STRUCTURED_CHUNK_LENGTH) {
+                val previous = merged.removeLast()
+                merged += mergeChunks(document, previous, lastChunk)
+            } else {
+                merged += lastChunk
+            }
+        }
+
+        return merged
+    }
+
+    private fun mergeChunks(
+        document: RawDocument,
+        first: DocumentChunk,
+        second: DocumentChunk,
+    ): DocumentChunk =
+        buildChunk(
+            document = document,
+            chunkIndex = 0,
+            section = first.metadata.section,
+            startOffset = first.metadata.startOffset,
+            endOffset = second.metadata.endOffset,
+        ) ?: first
+
+    private fun splitLargeChunk(
+        document: RawDocument,
+        chunk: DocumentChunk,
+    ): List<DocumentChunk> {
+        val parts = mutableListOf<DocumentChunk>()
+        val baseStart = chunk.metadata.startOffset
+        var currentStart = baseStart
+
+        while (currentStart < chunk.metadata.endOffset) {
+            val currentEnd = minOf(currentStart + fallbackChunker.chunkSize, chunk.metadata.endOffset)
+            buildChunk(
+                document = document,
+                chunkIndex = parts.size,
+                section = chunk.metadata.section,
+                startOffset = currentStart,
+                endOffset = currentEnd,
+            )?.let(parts::add)
+
+            if (currentEnd >= chunk.metadata.endOffset) {
+                break
+            }
+
+            currentStart = maxOf(currentEnd - fallbackChunker.overlap, currentStart + 1)
+        }
+
+        return parts
+    }
+
+    private companion object {
+        private const val MIN_STRUCTURED_CHUNK_LENGTH = 600
     }
 }
