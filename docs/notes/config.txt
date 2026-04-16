@@ -1,6 +1,0 @@
-inputDir=./docs
-outputDir=./data
-embeddingModel=nomic-embed-text
-
-Этот файл нужен как пример plain text документа.
-
