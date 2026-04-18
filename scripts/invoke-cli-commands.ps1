@@ -17,7 +17,7 @@ function Get-CliBatPath {
         [string]$WorkingDirectory
     )
 
-    return Join-Path $WorkingDirectory "build\install\ai_advent_day_21\bin\local-document-indexer.bat"
+    return Join-Path $WorkingDirectory "build\install\ai_advent_day_22\bin\local-document-indexer.bat"
 }
 
 function Invoke-InteractiveCliCommands {
