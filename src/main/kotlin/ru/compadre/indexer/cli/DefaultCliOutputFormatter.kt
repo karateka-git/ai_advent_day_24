@@ -8,6 +8,7 @@ import ru.compadre.indexer.workflow.result.CommandResult
 import ru.compadre.indexer.workflow.result.DocumentLoadResult
 import ru.compadre.indexer.workflow.result.HelpResult
 import ru.compadre.indexer.workflow.result.IndexPersistResult
+import ru.compadre.indexer.workflow.result.SearchResult
 
 /**
  * Форматтер CLI-вывода для стартовых этапов проекта.
@@ -18,6 +19,7 @@ class DefaultCliOutputFormatter : CliOutputFormatter {
         is IndexPersistResult -> indexPersistText(result)
         is CompareReportResult -> compareReportText(result)
         is AskResult -> askText(result)
+        is SearchResult -> searchText(result)
         is ChunkPreviewResult -> chunkPreviewText(result)
         is DocumentLoadResult -> documentLoadText(result)
     }
@@ -30,6 +32,7 @@ class DefaultCliOutputFormatter : CliOutputFormatter {
         add("  index --input <dir> --all-strategies")
         add("  compare --input <dir>")
         add("  ask --query <text> --mode plain")
+        add("  search --query <text> --strategy <fixed|structured> --top <N>")
         add("  help")
         add("")
         add("Текущий конфиг:")
@@ -40,7 +43,7 @@ class DefaultCliOutputFormatter : CliOutputFormatter {
         add("  chunking.fixedSize = ${result.fixedSize}")
         add("  chunking.overlap = ${result.overlap}")
         add("")
-        add("Текущий статус: index сохраняет SQLite-индекс, compare строит comparison.md и показывает метрики стратегий, ask отправляет вопрос во внешний LLM.")
+        add("Текущий статус: index сохраняет SQLite-индекс, compare строит comparison.md, ask отправляет вопрос во внешний LLM, search показывает retrieval topK.")
     }.joinToString(separator = System.lineSeparator())
 
     private fun askText(result: AskResult): String = buildList {
@@ -52,6 +55,32 @@ class DefaultCliOutputFormatter : CliOutputFormatter {
         add("")
         add("Ответ:")
         add(result.answer)
+    }.joinToString(separator = System.lineSeparator())
+
+    private fun searchText(result: SearchResult): String = buildList {
+        add("Команда `search` выполнила semantic search.")
+        add("")
+        add("Параметры запуска:")
+        add("  query = ${result.query}")
+        add("  strategy = ${result.strategyLabel}")
+        add("  topK = ${result.topK}")
+        add("  database = ${result.databasePath}")
+        add("")
+
+        if (result.matches.isEmpty()) {
+            add("Релевантные чанки не найдены.")
+        } else {
+            add("Найденные чанки:")
+            result.matches.forEachIndexed { index, match ->
+                val chunk = match.embeddedChunk.chunk
+                add("  ${index + 1}. score = ${"%.4f".format(match.score)}")
+                add("     chunkId = ${chunk.metadata.chunkId}")
+                add("     title = ${chunk.metadata.title}")
+                add("     filePath = ${chunk.metadata.filePath}")
+                add("     section = ${chunk.metadata.section}")
+                add("     preview = ${previewText(chunk.text)}")
+            }
+        }
     }.joinToString(separator = System.lineSeparator())
 
     private fun indexPersistText(result: IndexPersistResult): String = buildList {

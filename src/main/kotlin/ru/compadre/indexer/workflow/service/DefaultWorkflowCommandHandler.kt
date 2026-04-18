@@ -12,12 +12,14 @@ import ru.compadre.indexer.model.RawDocument
 import ru.compadre.indexer.report.ChunkingComparisonService
 import ru.compadre.indexer.report.MarkdownComparisonReportWriter
 import ru.compadre.indexer.qa.PlainQuestionAnsweringService
+import ru.compadre.indexer.search.BruteForceSearchEngine
 import ru.compadre.indexer.storage.IndexStore
 import ru.compadre.indexer.storage.SqliteIndexStore
 import ru.compadre.indexer.workflow.command.AskCommand
 import ru.compadre.indexer.workflow.command.CompareCommand
 import ru.compadre.indexer.workflow.command.HelpCommand
 import ru.compadre.indexer.workflow.command.IndexCommand
+import ru.compadre.indexer.workflow.command.SearchCommand
 import ru.compadre.indexer.workflow.command.WorkflowCommand
 import ru.compadre.indexer.workflow.result.ChunkEmbeddingPreview
 import ru.compadre.indexer.workflow.result.ChunkPreviewResult
@@ -26,6 +28,7 @@ import ru.compadre.indexer.workflow.result.CommandResult
 import ru.compadre.indexer.workflow.result.HelpResult
 import ru.compadre.indexer.workflow.result.IndexPersistResult
 import ru.compadre.indexer.workflow.result.AskResult
+import ru.compadre.indexer.workflow.result.SearchResult
 import java.nio.file.Path
 
 /**
@@ -37,6 +40,7 @@ class DefaultWorkflowCommandHandler(
     private val comparisonService: ChunkingComparisonService = ChunkingComparisonService(),
     private val comparisonReportWriter: MarkdownComparisonReportWriter = MarkdownComparisonReportWriter(),
     private val plainQuestionAnsweringService: PlainQuestionAnsweringService = PlainQuestionAnsweringService(),
+    private val searchEngine: BruteForceSearchEngine = BruteForceSearchEngine(),
 ) : WorkflowCommandHandler {
     override suspend fun handle(command: WorkflowCommand, config: AppConfig): CommandResult = when (command) {
         HelpCommand -> HelpResult(
@@ -55,6 +59,13 @@ class DefaultWorkflowCommandHandler(
                 question = command.query,
                 config = config.llm,
             ),
+        )
+
+        is SearchCommand -> runSearch(
+            query = command.query,
+            strategy = command.strategy,
+            topK = command.topK ?: config.search.topK,
+            config = config,
         )
 
         is IndexCommand -> runIndexing(
@@ -217,6 +228,35 @@ class DefaultWorkflowCommandHandler(
         } finally {
             embeddingService.close()
         }
+    }
+
+    private suspend fun runSearch(
+        query: String,
+        strategy: ChunkingStrategy?,
+        topK: Int,
+        config: AppConfig,
+    ): SearchResult {
+        val effectiveStrategy = strategy ?: ChunkingStrategy.FIXED
+        val databasePath = resolveDatabasePath(
+            outputDir = config.app.outputDir,
+            strategy = effectiveStrategy,
+            allStrategies = false,
+        )
+        val matches = searchEngine.search(
+            query = query,
+            databasePath = databasePath,
+            strategy = effectiveStrategy,
+            topK = topK,
+            config = config,
+        )
+
+        return SearchResult(
+            query = query,
+            strategyLabel = effectiveStrategy.id,
+            databasePath = databasePath.toAbsolutePath().toString(),
+            topK = topK,
+            matches = matches,
+        )
     }
 
     private fun resolveDatabasePath(

@@ -5,6 +5,7 @@ import ru.compadre.indexer.workflow.command.AskCommand
 import ru.compadre.indexer.workflow.command.CompareCommand
 import ru.compadre.indexer.workflow.command.HelpCommand
 import ru.compadre.indexer.workflow.command.IndexCommand
+import ru.compadre.indexer.workflow.command.SearchCommand
 import ru.compadre.indexer.workflow.command.WorkflowCommand
 
 /**
@@ -23,8 +24,9 @@ class DefaultCliCommandParser : CliCommandParser {
             "index" -> parseIndexCommand(args)
             "compare" -> parseCompareCommand(args)
             "ask" -> parseAskCommand(args)
+            "search" -> parseSearchCommand(args)
             else -> throw IllegalArgumentException(
-                "Неизвестная команда `$command`. Поддерживаемые команды: help, index, compare, ask.",
+                "Неизвестная команда `$command`. Поддерживаемые команды: help, index, compare, ask, search.",
             )
         }
     }
@@ -67,6 +69,27 @@ class DefaultCliCommandParser : CliCommandParser {
         return AskCommand(
             query = query,
             mode = mode.lowercase(),
+        )
+    }
+
+    private fun parseSearchCommand(args: Array<String>): WorkflowCommand {
+        val query = findOption(args, "--query")
+            ?: throw IllegalArgumentException("Для команды `search` требуется опция `--query`.")
+        val strategy = findOption(args, "--strategy")?.let { rawValue ->
+            ChunkingStrategy.fromCli(rawValue)
+                ?: throw IllegalArgumentException(
+                    "Для `search --strategy` поддерживаются только значения `fixed` и `structured`.",
+                )
+        }
+        val topK = findOption(args, "--top")?.toIntOrNull()
+            ?: findOption(args, "--top")?.let {
+                throw IllegalArgumentException("Для `search --top` требуется целое число.")
+            }
+
+        return SearchCommand(
+            query = query,
+            strategy = strategy,
+            topK = topK,
         )
     }
 

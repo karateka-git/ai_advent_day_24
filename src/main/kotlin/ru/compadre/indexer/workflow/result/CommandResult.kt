@@ -3,6 +3,7 @@ package ru.compadre.indexer.workflow.result
 import ru.compadre.indexer.model.DocumentChunk
 import ru.compadre.indexer.model.RawDocument
 import ru.compadre.indexer.report.ChunkingComparisonReport
+import ru.compadre.indexer.search.model.SearchMatch
 
 /**
  * Базовый тип результатов выполнения CLI-команд.
@@ -65,6 +66,17 @@ data class AskResult(
     val query: String,
     val mode: String,
     val answer: String,
+) : CommandResult
+
+/**
+ * Результат semantic search по локальному индексу.
+ */
+data class SearchResult(
+    val query: String,
+    val strategyLabel: String,
+    val databasePath: String,
+    val topK: Int,
+    val matches: List<SearchMatch>,
 ) : CommandResult
 
 /**
