@@ -1,5 +1,6 @@
 package ru.compadre.indexer.cli
 
+import ru.compadre.indexer.workflow.result.AskResult
 import ru.compadre.indexer.workflow.result.ChunkEmbeddingPreview
 import ru.compadre.indexer.workflow.result.ChunkPreviewResult
 import ru.compadre.indexer.workflow.result.CompareReportResult
@@ -16,6 +17,7 @@ class DefaultCliOutputFormatter : CliOutputFormatter {
         is HelpResult -> helpText(result)
         is IndexPersistResult -> indexPersistText(result)
         is CompareReportResult -> compareReportText(result)
+        is AskResult -> askText(result)
         is ChunkPreviewResult -> chunkPreviewText(result)
         is DocumentLoadResult -> documentLoadText(result)
     }
@@ -27,6 +29,7 @@ class DefaultCliOutputFormatter : CliOutputFormatter {
         add("  index --input <dir> --strategy <fixed|structured>")
         add("  index --input <dir> --all-strategies")
         add("  compare --input <dir>")
+        add("  ask --query <text> --mode plain")
         add("  help")
         add("")
         add("Текущий конфиг:")
@@ -37,7 +40,18 @@ class DefaultCliOutputFormatter : CliOutputFormatter {
         add("  chunking.fixedSize = ${result.fixedSize}")
         add("  chunking.overlap = ${result.overlap}")
         add("")
-        add("Текущий статус: index сохраняет SQLite-индекс, compare строит comparison.md и показывает метрики стратегий.")
+        add("Текущий статус: index сохраняет SQLite-индекс, compare строит comparison.md и показывает метрики стратегий, ask отправляет вопрос во внешний LLM.")
+    }.joinToString(separator = System.lineSeparator())
+
+    private fun askText(result: AskResult): String = buildList {
+        add("Команда `ask` получила ответ модели.")
+        add("")
+        add("Параметры запуска:")
+        add("  mode = ${result.mode}")
+        add("  query = ${result.query}")
+        add("")
+        add("Ответ:")
+        add(result.answer)
     }.joinToString(separator = System.lineSeparator())
 
     private fun indexPersistText(result: IndexPersistResult): String = buildList {

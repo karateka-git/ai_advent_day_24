@@ -11,8 +11,10 @@ import ru.compadre.indexer.model.EmbeddedChunk
 import ru.compadre.indexer.model.RawDocument
 import ru.compadre.indexer.report.ChunkingComparisonService
 import ru.compadre.indexer.report.MarkdownComparisonReportWriter
+import ru.compadre.indexer.qa.PlainQuestionAnsweringService
 import ru.compadre.indexer.storage.IndexStore
 import ru.compadre.indexer.storage.SqliteIndexStore
+import ru.compadre.indexer.workflow.command.AskCommand
 import ru.compadre.indexer.workflow.command.CompareCommand
 import ru.compadre.indexer.workflow.command.HelpCommand
 import ru.compadre.indexer.workflow.command.IndexCommand
@@ -23,6 +25,7 @@ import ru.compadre.indexer.workflow.result.CompareReportResult
 import ru.compadre.indexer.workflow.result.CommandResult
 import ru.compadre.indexer.workflow.result.HelpResult
 import ru.compadre.indexer.workflow.result.IndexPersistResult
+import ru.compadre.indexer.workflow.result.AskResult
 import java.nio.file.Path
 
 /**
@@ -33,6 +36,7 @@ class DefaultWorkflowCommandHandler(
     private val indexStore: IndexStore = SqliteIndexStore(),
     private val comparisonService: ChunkingComparisonService = ChunkingComparisonService(),
     private val comparisonReportWriter: MarkdownComparisonReportWriter = MarkdownComparisonReportWriter(),
+    private val plainQuestionAnsweringService: PlainQuestionAnsweringService = PlainQuestionAnsweringService(),
 ) : WorkflowCommandHandler {
     override suspend fun handle(command: WorkflowCommand, config: AppConfig): CommandResult = when (command) {
         HelpCommand -> HelpResult(
@@ -42,6 +46,15 @@ class DefaultWorkflowCommandHandler(
             embeddingModel = config.ollama.embeddingModel,
             fixedSize = config.chunking.fixedSize,
             overlap = config.chunking.overlap,
+        )
+
+        is AskCommand -> AskResult(
+            query = command.query,
+            mode = command.mode,
+            answer = plainQuestionAnsweringService.answer(
+                question = command.query,
+                config = config.llm,
+            ),
         )
 
         is IndexCommand -> runIndexing(

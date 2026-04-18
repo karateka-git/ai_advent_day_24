@@ -1,6 +1,7 @@
 package ru.compadre.indexer.cli
 
 import ru.compadre.indexer.model.ChunkingStrategy
+import ru.compadre.indexer.workflow.command.AskCommand
 import ru.compadre.indexer.workflow.command.CompareCommand
 import ru.compadre.indexer.workflow.command.HelpCommand
 import ru.compadre.indexer.workflow.command.IndexCommand
@@ -21,8 +22,9 @@ class DefaultCliCommandParser : CliCommandParser {
             "help" -> HelpCommand
             "index" -> parseIndexCommand(args)
             "compare" -> parseCompareCommand(args)
+            "ask" -> parseAskCommand(args)
             else -> throw IllegalArgumentException(
-                "Неизвестная команда `$command`. Поддерживаемые команды: help, index, compare.",
+                "Неизвестная команда `$command`. Поддерживаемые команды: help, index, compare, ask.",
             )
         }
     }
@@ -53,6 +55,21 @@ class DefaultCliCommandParser : CliCommandParser {
             inputDir = findOption(args, "--input"),
         )
 
+    private fun parseAskCommand(args: Array<String>): WorkflowCommand {
+        val query = findOption(args, "--query")
+            ?: throw IllegalArgumentException("Для команды `ask` требуется опция `--query`.")
+        val mode = findOption(args, "--mode") ?: DEFAULT_ASK_MODE
+
+        if (mode.lowercase() != DEFAULT_ASK_MODE) {
+            throw IllegalArgumentException("На текущем этапе для `ask --mode` поддерживается только значение `plain`.")
+        }
+
+        return AskCommand(
+            query = query,
+            mode = mode.lowercase(),
+        )
+    }
+
     private fun findOption(args: Array<String>, optionName: String): String? {
         val index = args.indexOfFirst { it.equals(optionName, ignoreCase = true) }
         if (index == -1) {
@@ -62,5 +79,9 @@ class DefaultCliCommandParser : CliCommandParser {
         return args.getOrNull(index + 1)
             ?.takeUnless { it.startsWith("--") }
             ?: throw IllegalArgumentException("Для опции `$optionName` требуется значение.")
+    }
+
+    private companion object {
+        private const val DEFAULT_ASK_MODE = "plain"
     }
 }

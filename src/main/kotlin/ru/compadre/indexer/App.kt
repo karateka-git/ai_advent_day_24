@@ -122,11 +122,46 @@ private suspend fun executeInteractiveCommand(
     commandHandler: WorkflowCommandHandler,
 ) {
     val command = try {
-        parser.parse(rawInput.split(Regex("\\s+")).toTypedArray())
+        parser.parse(tokenizeCliInput(rawInput))
     } catch (error: IllegalArgumentException) {
         println(error.message ?: "Не удалось разобрать CLI-команду.")
         return
     }
 
     println(formatter.format(commandHandler.handle(command, config)))
+}
+
+private fun tokenizeCliInput(rawInput: String): Array<String> {
+    val tokens = mutableListOf<String>()
+    val current = StringBuilder()
+    var quoteChar: Char? = null
+
+    rawInput.forEach { char ->
+        when {
+            quoteChar == null && char.isWhitespace() -> {
+                if (current.isNotEmpty()) {
+                    tokens += current.toString()
+                    current.clear()
+                }
+            }
+
+            char == '"' || char == '\'' -> {
+                if (quoteChar == null) {
+                    quoteChar = char
+                } else if (quoteChar == char) {
+                    quoteChar = null
+                } else {
+                    current.append(char)
+                }
+            }
+
+            else -> current.append(char)
+        }
+    }
+
+    if (current.isNotEmpty()) {
+        tokens += current.toString()
+    }
+
+    return tokens.toTypedArray()
 }

@@ -59,6 +59,15 @@ data class CompareReportResult(
 ) : CommandResult
 
 /**
+ * Результат простого ответа модели на пользовательский вопрос.
+ */
+data class AskResult(
+    val query: String,
+    val mode: String,
+    val answer: String,
+) : CommandResult
+
+/**
  * Результат предпросмотра chunking на текущем этапе.
  */
 data class ChunkPreviewResult(
