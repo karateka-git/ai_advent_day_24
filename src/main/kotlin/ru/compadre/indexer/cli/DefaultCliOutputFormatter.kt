@@ -32,6 +32,7 @@ class DefaultCliOutputFormatter : CliOutputFormatter {
         add("  index --input <dir> --all-strategies")
         add("  compare --input <dir>")
         add("  ask --query <text> --mode plain")
+        add("  ask --query <text> --mode rag --strategy <fixed|structured> --top <N>")
         add("  search --query <text> --strategy <fixed|structured> --top <N>")
         add("  help")
         add("")
@@ -43,7 +44,7 @@ class DefaultCliOutputFormatter : CliOutputFormatter {
         add("  chunking.fixedSize = ${result.fixedSize}")
         add("  chunking.overlap = ${result.overlap}")
         add("")
-        add("Текущий статус: index сохраняет SQLite-индекс, compare строит comparison.md, ask отправляет вопрос во внешний LLM, search показывает retrieval topK.")
+        add("Текущий статус: index сохраняет SQLite-индекс, compare строит comparison.md, ask поддерживает plain и rag, search показывает retrieval topK.")
     }.joinToString(separator = System.lineSeparator())
 
     private fun askText(result: AskResult): String = buildList {
@@ -52,9 +53,34 @@ class DefaultCliOutputFormatter : CliOutputFormatter {
         add("Параметры запуска:")
         add("  mode = ${result.mode}")
         add("  query = ${result.query}")
+
+        if (result.mode == "rag") {
+            add("  strategy = ${result.strategyLabel ?: "<не указана>"}")
+            add("  topK = ${result.topK ?: 0}")
+            add("  database = ${result.databasePath ?: "<не указана>"}")
+        }
+
         add("")
         add("Ответ:")
         add(result.answer)
+
+        if (result.mode == "rag") {
+            add("")
+            if (result.matches.isEmpty()) {
+                add("Retrieval-сводка:")
+                add("  Контекст не найден.")
+            } else {
+                add("Retrieval-сводка:")
+                result.matches.forEachIndexed { index, match ->
+                    val chunk = match.embeddedChunk.chunk
+                    add("  ${index + 1}. score = ${"%.4f".format(match.score)}")
+                    add("     title = ${chunk.metadata.title}")
+                    add("     filePath = ${chunk.metadata.filePath}")
+                    add("     section = ${chunk.metadata.section}")
+                    add("     preview = ${previewText(chunk.text)}")
+                }
+            }
+        }
     }.joinToString(separator = System.lineSeparator())
 
     private fun searchText(result: SearchResult): String = buildList {
