@@ -1,6 +1,7 @@
 package ru.compadre.indexer.cli
 
 import ru.compadre.indexer.search.model.RetrievalCandidate
+import ru.compadre.indexer.search.model.PostRetrievalMode
 import ru.compadre.indexer.search.model.RetrievalPipelineResult
 import ru.compadre.indexer.workflow.result.AskResult
 import ru.compadre.indexer.workflow.result.ChunkEmbeddingPreview
@@ -229,6 +230,9 @@ class DefaultCliOutputFormatter : CliOutputFormatter {
         add("  finalTopK = ${retrievalResult.finalTopK}")
         add("  candidatesBefore = ${retrievalResult.initialCandidates.size}")
         add("  candidatesSelected = ${retrievalResult.selectedCandidates.size}")
+        if (retrievalResult.mode == PostRetrievalMode.MODEL_RERANK) {
+            add("  rankingSource = external-llm-json-score")
+        }
 
         if (retrievalResult.candidates.isEmpty()) {
             add("  Контекст не найден.")
@@ -241,11 +245,15 @@ class DefaultCliOutputFormatter : CliOutputFormatter {
 
         add("  Кандидаты pipeline:")
         retrievalResult.finalCandidates.forEachIndexed { index, candidate ->
-            addAll(candidateLines(index + 1, candidate))
+            addAll(candidateLines(index + 1, candidate, retrievalResult.mode))
         }
     }
 
-    private fun candidateLines(index: Int, candidate: RetrievalCandidate): List<String> {
+    private fun candidateLines(
+        index: Int,
+        candidate: RetrievalCandidate,
+        mode: PostRetrievalMode,
+    ): List<String> {
         val chunk = candidate.match.embeddedChunk.chunk
         return buildList {
             add("  ${index}. selected = ${if (candidate.selected) "yes" else "no"}")
@@ -254,7 +262,15 @@ class DefaultCliOutputFormatter : CliOutputFormatter {
             add("     cosineScore = ${"%.4f".format(candidate.cosineScore)}")
             add("     finalScore = ${"%.4f".format(candidate.finalScore)}")
             candidate.heuristicScore?.let { add("     heuristicScore = ${"%.4f".format(it)}") }
-            candidate.modelScore?.let { add("     modelScore = ${"%.4f".format(it)}") }
+            if (mode == PostRetrievalMode.MODEL_RERANK) {
+                add(
+                    "     modelScore = ${
+                        candidate.modelScore?.let { score -> "%.4f".format(score) } ?: "n/a"
+                    }",
+                )
+            } else {
+                candidate.modelScore?.let { add("     modelScore = ${"%.4f".format(it)}") }
+            }
             candidate.decisionReason?.let { reason ->
                 add("     decisionMode = ${reason.mode.configValue}")
                 add("     decisionReason = ${reason.label}")
