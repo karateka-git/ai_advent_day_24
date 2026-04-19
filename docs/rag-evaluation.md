@@ -1,8 +1,8 @@
-# Сравнение plain и RAG
+﻿# Сравнение plain и RAG
 
-Итоговый отчёт по 10 контрольным вопросам из [control-questions.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_22/docs/control-questions.md).
+Итоговый отчёт по 10 контрольным вопросам из [control-questions.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_23/docs/control-questions.md).
 
-Полный сырой прогон был собран скриптом [run-rag-evaluation.ps1](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_22/scripts/run-rag-evaluation.ps1) по корпусу:
+Полный сырой прогон был собран скриптом [run-rag-evaluation.ps1](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_23/scripts/run-rag-evaluation.ps1) по корпусу:
 
 - `docs/articles/doroshevich`
 

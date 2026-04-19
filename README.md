@@ -1,4 +1,4 @@
-# local-document-indexer
+﻿# local-document-indexer
 
 Учебный Kotlin-проект для локальной индексации документов и первого end-to-end RAG-сценария.
 
@@ -175,7 +175,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\start-manual-check.ps1 -SkipB
 ### Прямой запуск launcher
 
 ```powershell
-.\build\install\ai_advent_day_22\bin\local-document-indexer.bat
+.\build\install\ai_advent_day_23\bin\local-document-indexer.bat
 ```
 
 ## Доступные команды
@@ -276,7 +276,7 @@ ask --query "Как описан Аден?" --mode rag --strategy structured --t
 
 Текущая реализация находится в:
 
-- [RagQuestionAnsweringService.kt](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_22/src/main/kotlin/ru/compadre/indexer/qa/RagQuestionAnsweringService.kt)
+- [RagQuestionAnsweringService.kt](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_23/src/main/kotlin/ru/compadre/indexer/qa/RagQuestionAnsweringService.kt)
 
 В запрос к LLM отправляются два сообщения.
 
@@ -383,7 +383,7 @@ compare --input ./docs/articles/doroshevich
 
 В проекте подготовлен мини-набор из 10 контрольных вопросов:
 
-- [control-questions.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_22/docs/control-questions.md)
+- [control-questions.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_23/docs/control-questions.md)
 
 Для каждого вопроса зафиксированы:
 
@@ -392,14 +392,14 @@ compare --input ./docs/articles/doroshevich
 
 Дополнительно есть:
 
-- [control-questions-source-notes.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_22/docs/control-questions-source-notes.md)
-- [control-questions.json](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_22/docs/control-questions.json)
+- [control-questions-source-notes.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_23/docs/control-questions-source-notes.md)
+- [control-questions.json](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_23/docs/control-questions.json)
 
 ## Как сравнивались plain и RAG
 
 Для evaluation был добавлен скрипт:
 
-- [run-rag-evaluation.ps1](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_22/scripts/run-rag-evaluation.ps1)
+- [run-rag-evaluation.ps1](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_23/scripts/run-rag-evaluation.ps1)
 
 Он:
 
@@ -412,7 +412,7 @@ compare --input ./docs/articles/doroshevich
 
 Итоговый краткий отчёт лежит в:
 
-- [rag-evaluation.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_22/docs/rag-evaluation.md)
+- [rag-evaluation.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_23/docs/rag-evaluation.md)
 
 ## Краткие результаты сравнения plain и RAG
 

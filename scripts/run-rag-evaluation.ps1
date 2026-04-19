@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$ProjectRoot = (Split-Path -Parent $PSScriptRoot),
     [string]$DatasetPath = "",
     [string]$InputDir = "./docs/articles/doroshevich",
@@ -22,7 +22,7 @@ if (-not $OutputPath) {
 
 function Get-CliBatPath {
     param([string]$WorkingDirectory)
-    Join-Path $WorkingDirectory "build\install\ai_advent_day_22\bin\local-document-indexer.bat"
+    Join-Path $WorkingDirectory "build\install\ai_advent_day_23\bin\local-document-indexer.bat"
 }
 
 function Invoke-CliCommand {

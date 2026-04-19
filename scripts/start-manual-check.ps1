@@ -1,4 +1,4 @@
-param(
+﻿param(
     [switch]$Headless,
     [switch]$SkipBuild
 )
@@ -11,7 +11,7 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 
 function Get-CliBatPath {
     param([Parameter(Mandatory = $true)][string]$ProjectRoot)
-    Join-Path $ProjectRoot "build\install\ai_advent_day_22\bin\local-document-indexer.bat"
+    Join-Path $ProjectRoot "build\install\ai_advent_day_23\bin\local-document-indexer.bat"
 }
 
 function Assert-LauncherExists {

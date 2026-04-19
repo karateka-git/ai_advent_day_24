@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string[]]$Commands = @("help", "exit"),
     [string]$ProjectRoot = (Split-Path -Parent $PSScriptRoot),
     [string]$StdoutPath = "",
@@ -17,7 +17,7 @@ function Get-CliBatPath {
         [string]$WorkingDirectory
     )
 
-    return Join-Path $WorkingDirectory "build\install\ai_advent_day_22\bin\local-document-indexer.bat"
+    return Join-Path $WorkingDirectory "build\install\ai_advent_day_23\bin\local-document-indexer.bat"
 }
 
 function Invoke-InteractiveCliCommands {
