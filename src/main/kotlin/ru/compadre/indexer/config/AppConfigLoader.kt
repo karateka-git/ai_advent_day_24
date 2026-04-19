@@ -52,6 +52,11 @@ object AppConfigLoader {
                     maxCandidates = config.getInt("search.modelRerank.maxCandidates"),
                 ),
             ),
+            answerGuard = AnswerGuardSection(
+                enabled = config.getBoolean("answerGuard.enabled"),
+                minTopScore = config.getDouble("answerGuard.minTopScore"),
+                minSelectedChunks = config.getInt("answerGuard.minSelectedChunks"),
+            ),
         )
     }
 

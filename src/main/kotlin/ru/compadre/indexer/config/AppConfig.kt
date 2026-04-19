@@ -9,6 +9,7 @@ data class AppConfig(
     val llm: LlmSection,
     val chunking: ChunkingSection,
     val search: SearchSection,
+    val answerGuard: AnswerGuardSection,
 )
 
 /**
@@ -78,5 +79,14 @@ data class SearchHeuristicSection(
 data class SearchModelRerankSection(
     val enabled: Boolean,
     val maxCandidates: Int,
+)
+
+/**
+ * Guard settings used to refuse weak RAG contexts before calling the LLM.
+ */
+data class AnswerGuardSection(
+    val enabled: Boolean,
+    val minTopScore: Double,
+    val minSelectedChunks: Int,
 )
 

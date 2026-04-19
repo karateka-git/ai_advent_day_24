@@ -80,6 +80,13 @@ class DefaultCliOutputFormatter : CliOutputFormatter {
 
         add("")
         add("РћС‚РІРµС‚:")
+        result.ragAnswer?.takeIf { it.isRefusal }?.let { ragAnswer ->
+            add("Режим: refusal")
+            ragAnswer.refusalReason?.let { reason ->
+                add("Причина: $reason")
+            }
+            add("")
+        }
         add(result.ragAnswer?.answer ?: result.answer)
 
         if (result.mode == "rag") {

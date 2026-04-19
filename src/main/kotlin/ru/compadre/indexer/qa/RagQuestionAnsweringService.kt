@@ -1,5 +1,6 @@
 package ru.compadre.indexer.qa
 
+import ru.compadre.indexer.config.AnswerGuardSection
 import ru.compadre.indexer.config.AppConfig
 import ru.compadre.indexer.llm.ExternalLlmClient
 import ru.compadre.indexer.llm.model.ChatMessage
@@ -35,6 +36,19 @@ class RagQuestionAnsweringService(
             config = config,
         )
         val selectedMatches = retrievalResult.selectedMatches
+        val guardDecision = evaluateAnswerGuard(selectedMatches, config.answerGuard)
+
+        if (!guardDecision.allowed) {
+            return RagAnswer(
+                answer = REFUSAL_ANSWER,
+                sources = emptyList(),
+                quotes = emptyList(),
+                isRefusal = true,
+                refusalReason = guardDecision.reason,
+                retrievalResult = retrievalResult,
+            )
+        }
+
         val answer = llmClient.complete(
             config = config.llm,
             messages = listOf(
@@ -55,6 +69,32 @@ class RagQuestionAnsweringService(
             quotes = buildQuotes(selectedMatches),
             retrievalResult = retrievalResult,
         )
+    }
+
+    private fun evaluateAnswerGuard(
+        matches: List<SearchMatch>,
+        guardConfig: AnswerGuardSection,
+    ): GuardDecision {
+        if (!guardConfig.enabled) {
+            return GuardDecision(allowed = true, reason = null)
+        }
+
+        if (matches.size < guardConfig.minSelectedChunks) {
+            return GuardDecision(
+                allowed = false,
+                reason = "selectedMatches=${matches.size} < minSelectedChunks=${guardConfig.minSelectedChunks}",
+            )
+        }
+
+        val topScore = matches.maxOfOrNull { match -> match.score } ?: 0.0
+        if (topScore < guardConfig.minTopScore) {
+            return GuardDecision(
+                allowed = false,
+                reason = "topScore=${"%.4f".format(topScore)} < minTopScore=${"%.4f".format(guardConfig.minTopScore)}",
+            )
+        }
+
+        return GuardDecision(allowed = true, reason = null)
     }
 
     /**
@@ -124,7 +164,14 @@ class RagQuestionAnsweringService(
         private const val SYSTEM_ROLE = "system"
         private const val USER_ROLE = "user"
         private const val MAX_QUOTE_LENGTH = 180
+        private const val REFUSAL_ANSWER =
+            "не знаю. Уточните вопрос: в найденном контексте недостаточно данных для уверенного ответа."
         private const val SYSTEM_PROMPT =
             "Ты полезный ассистент. Отвечай по контексту из retrieval. Если данных недостаточно, прямо скажи об этом. Не выдумывай факты вне контекста."
     }
+
+    private data class GuardDecision(
+        val allowed: Boolean,
+        val reason: String?,
+    )
 }
