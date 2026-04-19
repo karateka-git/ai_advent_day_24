@@ -7,6 +7,7 @@ import ru.compadre.indexer.search.model.PostRetrievalRequest
 import ru.compadre.indexer.search.model.RetrievalPipelineResult
 import ru.compadre.indexer.search.postprocess.NoOpPostRetrievalProcessor
 import ru.compadre.indexer.search.postprocess.PostRetrievalProcessor
+import ru.compadre.indexer.search.postprocess.ThresholdPostRetrievalProcessor
 import java.nio.file.Path
 
 /**
@@ -15,6 +16,7 @@ import java.nio.file.Path
 class RetrievalPipelineService(
     private val searchEngine: SearchEngine,
     private val noOpPostRetrievalProcessor: PostRetrievalProcessor = NoOpPostRetrievalProcessor(),
+    private val thresholdPostRetrievalProcessor: PostRetrievalProcessor = ThresholdPostRetrievalProcessor(),
 ) {
     /**
      * Выполняет retrieval и возвращает расширенный результат пайплайна.
@@ -56,10 +58,15 @@ class RetrievalPipelineService(
                 config = config,
             )
 
+            PostRetrievalMode.THRESHOLD_FILTER -> thresholdPostRetrievalProcessor.process(
+                request = request,
+                matches = matches,
+                config = config,
+            )
+
             else -> throw IllegalArgumentException(
                 "Режим `${mode.configValue}` будет реализован на следующих этапах.",
             )
         }
     }
 }
-
