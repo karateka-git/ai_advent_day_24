@@ -9,7 +9,7 @@
 - отвечать в режимах `plain` и `rag`;
 - сравнивать baseline RAG с `plain`;
 
-то в `day_23` основной фокус смещён на **второй этап retrieval**:
+то в `day_24` основной фокус смещён на **второй этап retrieval**:
 
 - post-retrieval filtering;
 - heuristic reranking;
@@ -146,7 +146,7 @@ ask --query "..." --mode rag --strategy structured --top 3 --post-mode model-rer
 
 Для сравнения режимов добавлен сценарий:
 
-- [scripts/run-rag-evaluation.ps1](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_23/scripts/run-rag-evaluation.ps1)
+- [scripts/run-rag-evaluation.ps1](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_24/scripts/run-rag-evaluation.ps1)
 
 Он:
 
@@ -159,12 +159,12 @@ ask --query "..." --mode rag --strategy structured --top 3 --post-mode model-rer
    - `rag + heuristic-rerank`
    - `rag + model-rerank`
 3. Строит два отчёта:
-   - [data/rag-evaluation-summary.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_23/data/rag-evaluation-summary.md)
-   - [data/rag-evaluation-raw.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_23/data/rag-evaluation-raw.md)
+  - [data/rag-evaluation-summary.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_24/data/rag-evaluation-summary.md)
+  - [data/rag-evaluation-raw.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_24/data/rag-evaluation-raw.md)
 
 Подробное описание формата лежит в:
 
-- [docs/rag-evaluation.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_23/docs/rag-evaluation.md)
+- [docs/rag-evaluation.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_24/docs/rag-evaluation.md)
 
 ## Краткие результаты сравнения режимов
 
@@ -220,15 +220,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-rag-evaluation
 
 ## Полезные артефакты
 
-- [docs/control-questions.json](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_23/docs/control-questions.json)
-- [docs/control-questions.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_23/docs/control-questions.md)
-- [docs/rag-evaluation.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_23/docs/rag-evaluation.md)
-- [data/rag-evaluation-summary.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_23/data/rag-evaluation-summary.md)
-- [data/rag-evaluation-raw.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_23/data/rag-evaluation-raw.md)
+- [docs/control-questions.json](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_24/docs/control-questions.json)
+- [docs/control-questions.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_24/docs/control-questions.md)
+- [docs/rag-evaluation.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_24/docs/rag-evaluation.md)
+- [data/rag-evaluation-summary.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_24/data/rag-evaluation-summary.md)
+- [data/rag-evaluation-raw.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_24/data/rag-evaluation-raw.md)
 
 ## Что важно помнить
 
-Текущий `day_23` не про новый storage или новый UI. Его основная задача в рамках этой сессии:
+Текущий `day_24` не про новый storage или новый UI. Его основная задача в рамках этой сессии:
 
 - усилить retrieval вторым этапом;
 - сделать это в нескольких вариантах;

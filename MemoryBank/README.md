@@ -1,6 +1,6 @@
-﻿# MemoryBank
+# MemoryBank
 
-Локальный банк памяти для проекта `ai_advent_day_23`.
+Локальный банк памяти для проекта `ai_advent_day_24`.
 
 ## Структура
 
@@ -11,7 +11,7 @@
 
 - Перед началом нового смыслового блока сначала читать локальный `MemoryBank` проекта.
 - После этого сверяться с общим `MemoryBank` в `C:\Users\compadre\Downloads\Projects\MemoryBank`.
-- Если в проекте есть краткий operational summary, дополнительно читать [agent-preflight.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_23/MemoryBank/agent-preflight.md).
+- Если в проекте есть краткий operational summary, дополнительно читать [agent-preflight.md](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_24/MemoryBank/agent-preflight.md).
 
 ## Что перенесено из day_20
 
@@ -23,4 +23,3 @@
 - документировать новые публичные сущности и важный orchestration-код;
 - учитывать UTF-8 как часть рабочего сценария CLI на Windows;
 - сохранять проект расширяемым, но не реализовывать future scope раньше времени.
-

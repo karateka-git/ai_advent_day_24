@@ -29,7 +29,7 @@ Evaluation должен отвечать на два вопроса:
 Сценарий использует:
 
 - корпус `docs/articles/doroshevich`
-- вопросы из [control-questions.json](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_23/docs/control-questions.json)
+- вопросы из [control-questions.json](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_24/docs/control-questions.json)
 
 Корпус индексируется отдельно от служебных markdown/json-файлов, чтобы retrieval не подтягивал сами контрольные вопросы как часть базы знаний.
 
@@ -37,7 +37,7 @@ Evaluation должен отвечать на два вопроса:
 
 Основной сценарий:
 
-- [run-rag-evaluation.ps1](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_23/scripts/run-rag-evaluation.ps1)
+- [run-rag-evaluation.ps1](/C:/Users/compadre/Downloads/Projects/AiAdvent/day_24/scripts/run-rag-evaluation.ps1)
 
 Скрипт делает следующее:
 
