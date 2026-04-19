@@ -34,6 +34,23 @@ object AppConfigLoader {
             ),
             search = SearchSection(
                 topK = config.getInt("search.topK"),
+                initialTopK = config.getInt("search.initialTopK"),
+                finalTopK = config.getInt("search.finalTopK"),
+                minSimilarity = config.getDouble("search.minSimilarity"),
+                postProcessingMode = config.getString("search.postProcessingMode"),
+                heuristic = SearchHeuristicSection(
+                    minKeywordOverlap = config.getInt("search.heuristic.minKeywordOverlap"),
+                    cosineWeight = config.getDouble("search.heuristic.cosineWeight"),
+                    keywordOverlapWeight = config.getDouble("search.heuristic.keywordOverlapWeight"),
+                    exactMatchBonus = config.getDouble("search.heuristic.exactMatchBonus"),
+                    titleMatchBonus = config.getDouble("search.heuristic.titleMatchBonus"),
+                    sectionMatchBonus = config.getDouble("search.heuristic.sectionMatchBonus"),
+                    duplicatePenalty = config.getDouble("search.heuristic.duplicatePenalty"),
+                ),
+                modelRerank = SearchModelRerankSection(
+                    enabled = config.getBoolean("search.modelRerank.enabled"),
+                    maxCandidates = config.getInt("search.modelRerank.maxCandidates"),
+                ),
             ),
         )
     }

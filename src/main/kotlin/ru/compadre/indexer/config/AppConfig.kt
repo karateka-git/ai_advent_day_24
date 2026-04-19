@@ -51,5 +51,32 @@ data class ChunkingSection(
  */
 data class SearchSection(
     val topK: Int,
+    val initialTopK: Int,
+    val finalTopK: Int,
+    val minSimilarity: Double,
+    val postProcessingMode: String,
+    val heuristic: SearchHeuristicSection,
+    val modelRerank: SearchModelRerankSection,
+)
+
+/**
+ * РќР°СЃС‚СЂРѕР№РєРё rule-based РѕС†РµРЅРєРё РґР»СЏ post-retrieval СЌС‚Р°РїР°.
+ */
+data class SearchHeuristicSection(
+    val minKeywordOverlap: Int,
+    val cosineWeight: Double,
+    val keywordOverlapWeight: Double,
+    val exactMatchBonus: Double,
+    val titleMatchBonus: Double,
+    val sectionMatchBonus: Double,
+    val duplicatePenalty: Double,
+)
+
+/**
+ * РќР°СЃС‚СЂРѕР№РєРё model-based reranking.
+ */
+data class SearchModelRerankSection(
+    val enabled: Boolean,
+    val maxCandidates: Int,
 )
 
