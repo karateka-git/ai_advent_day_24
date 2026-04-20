@@ -336,6 +336,18 @@ class DefaultWorkflowCommandHandler(
             strategy = effectiveStrategy,
             allStrategies = false,
         )
+        traceSink.emitRecord(
+            requestId = requestId,
+            kind = "search_request_started",
+            stage = "workflow.search",
+            payload = tracePayload {
+                putString("query", query)
+                putString("strategy", effectiveStrategy.id)
+                putInt("topK", finalTopK)
+                putString("databasePath", databasePath.toAbsolutePath().toString())
+                putString("postMode", config.search.postProcessingMode)
+            },
+        )
         val retrievalResult = retrievalPipelineService.retrieve(
             requestId = requestId,
             query = query,
@@ -344,6 +356,17 @@ class DefaultWorkflowCommandHandler(
             initialTopK = initialTopK,
             finalTopK = finalTopK,
             config = config,
+        )
+        traceSink.emitRecord(
+            requestId = requestId,
+            kind = "search_result_built",
+            stage = "workflow.search",
+            payload = tracePayload {
+                putString("query", query)
+                putString("strategy", effectiveStrategy.id)
+                putInt("topK", finalTopK)
+                putInt("matchesCount", retrievalResult.selectedMatches.size)
+            },
         )
 
         return SearchResult(
