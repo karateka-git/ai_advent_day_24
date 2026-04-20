@@ -9,9 +9,11 @@ import ru.compadre.indexer.search.model.SearchMatch
 import ru.compadre.indexer.trace.NoOpTraceSink
 import ru.compadre.indexer.trace.TraceSink
 import ru.compadre.indexer.trace.emitRecord
+import ru.compadre.indexer.trace.chatMessagesTracePayload
 import ru.compadre.indexer.trace.putBoolean
 import ru.compadre.indexer.trace.putDouble
 import ru.compadre.indexer.trace.putString
+import ru.compadre.indexer.trace.chunkTracePayload
 import ru.compadre.indexer.trace.tracePayload
 
 /**
@@ -35,29 +37,45 @@ class ModelRerankPostRetrievalProcessor(
         val passthroughMatches = matches.drop(maxCandidates)
         val scoredCandidates = rerankableMatches.mapIndexed { index, match ->
             val chunk = match.embeddedChunk.chunk
-            val evaluation = modelRerankJudge.score(
+            val prompt = modelRerankJudge.buildPrompt(
                 query = request.query,
                 chunk = chunk,
                 config = config.llm,
+            )
+            traceSink.emitRecord(
+                requestId = request.requestId,
+                kind = "model_rerank_prompt_built",
+                stage = "retrieval.model_rerank_prompt",
+                payload = tracePayload {
+                    putString("query", request.query)
+                    putString("chunkId", chunk.metadata.chunkId)
+                    putString("title", chunk.metadata.title)
+                    putString("section", chunk.metadata.section)
+                    putDouble("cosineScore", match.score)
+                    put("chunk", chunkTracePayload(chunk, includeText = true))
+                    put("messages", chatMessagesTracePayload(prompt.messages))
+                    putString("inputText", prompt.messages.lastOrNull()?.content)
+                },
+            )
+            val evaluation = modelRerankJudge.score(
+                prompt = prompt,
                 fallbackCosineScore = match.score,
             )
-            request.requestId?.let { requestId ->
-                traceSink.emitRecord(
-                    requestId = requestId,
-                    kind = "model_rerank_scored",
-                    stage = "retrieval.model_rerank",
-                    payload = tracePayload {
-                        putString("query", request.query)
-                        putString("chunkId", chunk.metadata.chunkId)
-                        putString("title", chunk.metadata.title)
-                        putString("section", chunk.metadata.section)
-                        putDouble("cosineScore", match.score)
-                        putDouble("modelScore", evaluation.score)
-                        putBoolean("usedFallback", evaluation.usedFallback)
-                        putString("rawResponse", evaluation.rawResponse)
-                    },
-                )
-            }
+            traceSink.emitRecord(
+                requestId = request.requestId,
+                kind = "model_rerank_scored",
+                stage = "retrieval.model_rerank",
+                payload = tracePayload {
+                    putString("query", request.query)
+                    putString("chunkId", chunk.metadata.chunkId)
+                    putString("title", chunk.metadata.title)
+                    putString("section", chunk.metadata.section)
+                    putDouble("cosineScore", match.score)
+                    putDouble("modelScore", evaluation.score)
+                    putBoolean("usedFallback", evaluation.usedFallback)
+                    putString("rawResponse", evaluation.rawResponse)
+                },
+            )
 
             ScoredModelCandidate(
                 match = match,

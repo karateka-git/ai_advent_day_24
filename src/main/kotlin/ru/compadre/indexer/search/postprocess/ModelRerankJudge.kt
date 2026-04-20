@@ -8,22 +8,18 @@ import ru.compadre.indexer.llm.model.ChatMessage
 import ru.compadre.indexer.model.DocumentChunk
 
 /**
- * Выполняет model-based оценку релевантности пары `query + chunk`.
+ * Performs model-based relevance scoring for the `query + chunk` pair.
  */
 class ModelRerankJudge(
     private val llmClient: ExternalLlmClient = ExternalLlmClient(),
     private val json: Json = Json { ignoreUnknownKeys = true },
 ) {
-    /**
-     * Запрашивает у внешней модели числовой relevance score в диапазоне `0..100`.
-     */
-    fun score(
+    fun buildPrompt(
         query: String,
         chunk: DocumentChunk,
         config: LlmSection,
-        fallbackCosineScore: Double,
-    ): ModelRerankEvaluation {
-        val responseText = llmClient.complete(
+    ): ModelRerankPrompt =
+        ModelRerankPrompt(
             config = config.copy(
                 temperature = MODEL_RERANK_TEMPERATURE,
                 maxTokens = minOf(config.maxTokens, MODEL_RERANK_MAX_TOKENS),
@@ -35,6 +31,18 @@ class ModelRerankJudge(
                     content = buildUserPrompt(query = query, chunk = chunk),
                 ),
             ),
+        )
+
+    /**
+     * Requests a model-based relevance score in the `0..100` range.
+     */
+    fun score(
+        prompt: ModelRerankPrompt,
+        fallbackCosineScore: Double,
+    ): ModelRerankEvaluation {
+        val responseText = llmClient.complete(
+            config = prompt.config,
+            messages = prompt.messages,
         )
 
         val parsedScore = parseScore(responseText)
@@ -95,8 +103,13 @@ class ModelRerankJudge(
     }
 }
 
+data class ModelRerankPrompt(
+    val config: LlmSection,
+    val messages: List<ChatMessage>,
+)
+
 /**
- * Результат model-based оценки релевантности.
+ * Result of model-based relevance evaluation.
  */
 data class ModelRerankEvaluation(
     val score: Double,
@@ -105,10 +118,9 @@ data class ModelRerankEvaluation(
 )
 
 /**
- * JSON-контракт ответа model-based reranker.
+ * JSON contract returned by the model-based reranker.
  */
 @Serializable
 data class ModelRerankScorePayload(
     val score: Double,
 )
-

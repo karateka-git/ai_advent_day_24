@@ -1,8 +1,10 @@
 package ru.compadre.indexer.trace
 
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import ru.compadre.indexer.config.AppConfig
+import ru.compadre.indexer.llm.model.ChatMessage
 import ru.compadre.indexer.model.DocumentChunk
 import ru.compadre.indexer.search.model.RetrievalCandidate
 import ru.compadre.indexer.search.model.SearchMatch
@@ -88,10 +90,11 @@ fun chunkTracePayload(
 fun searchMatchTracePayload(
     match: SearchMatch,
     initialRank: Int? = null,
+    includeText: Boolean = false,
 ): JsonObject {
     val chunk = match.embeddedChunk.chunk
     return buildJsonObject {
-        chunkTracePayload(chunk).forEach { (key, value) -> put(key, value) }
+        chunkTracePayload(chunk, includeText = includeText).forEach { (key, value) -> put(key, value) }
         putDouble("cosineScore", match.score)
         putInt("initialRank", initialRank)
     }
@@ -113,5 +116,29 @@ fun retrievalCandidateTracePayload(
         putString("decisionReason", candidate.decisionReason?.javaClass?.simpleName ?: candidate.decisionReason?.toString())
         putString("postProcessingMode", postProcessingMode)
         putBoolean("selected", candidate.selected)
+    }
+}
+
+fun chatMessageTracePayload(message: ChatMessage): JsonObject = tracePayload {
+    putString("role", message.role)
+    putString("content", message.content)
+}
+
+fun chatMessagesTracePayload(messages: List<ChatMessage>) = buildJsonArray {
+    messages.forEach { add(chatMessageTracePayload(it)) }
+}
+
+fun searchMatchesTracePayload(
+    matches: List<SearchMatch>,
+    includeText: Boolean = false,
+) = buildJsonArray {
+    matches.forEachIndexed { index, match ->
+        add(
+            searchMatchTracePayload(
+                match = match,
+                initialRank = index + 1,
+                includeText = includeText,
+            ),
+        )
     }
 }

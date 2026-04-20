@@ -14,8 +14,10 @@ import ru.compadre.indexer.search.RetrievalPipelineService
 import ru.compadre.indexer.search.model.SearchMatch
 import ru.compadre.indexer.trace.NoOpTraceSink
 import ru.compadre.indexer.trace.TraceSink
+import ru.compadre.indexer.trace.chatMessagesTracePayload
 import ru.compadre.indexer.trace.emitRecord
 import ru.compadre.indexer.trace.jsonArrayOfStrings
+import ru.compadre.indexer.trace.searchMatchesTracePayload
 import ru.compadre.indexer.trace.putBoolean
 import ru.compadre.indexer.trace.putDouble
 import ru.compadre.indexer.trace.putInt
@@ -100,18 +102,32 @@ class RagQuestionAnsweringService(
             )
         }
 
+        val userPrompt = buildUserPrompt(question, selectedMatches)
+        val messages = listOf(
+            ChatMessage(
+                role = SYSTEM_ROLE,
+                content = SYSTEM_PROMPT,
+            ),
+            ChatMessage(
+                role = USER_ROLE,
+                content = userPrompt,
+            ),
+        )
+        traceSink.emitRecord(
+            requestId = requestId,
+            kind = "answer_llm_prompt_built",
+            stage = "rag.answer_llm_prompt",
+            payload = tracePayload {
+                putString("question", question)
+                put("validChunkIds", jsonArrayOfStrings(selectedMatches.map { it.embeddedChunk.chunk.metadata.chunkId }))
+                put("contextChunks", searchMatchesTracePayload(selectedMatches, includeText = true))
+                putString("userPrompt", userPrompt)
+                put("messages", chatMessagesTracePayload(messages))
+            },
+        )
         val completion = llmClient.complete(
             config = config.llm,
-            messages = listOf(
-                ChatMessage(
-                    role = SYSTEM_ROLE,
-                    content = SYSTEM_PROMPT,
-                ),
-                ChatMessage(
-                    role = USER_ROLE,
-                    content = buildUserPrompt(question, selectedMatches),
-                ),
-            ),
+            messages = messages,
         )
         traceSink.emitRecord(
             requestId = requestId,
