@@ -25,7 +25,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 import java.time.Instant
-import java.util.UUID
 
 /**
  * Question-answering service that combines retrieval context with an LLM response.
@@ -40,7 +39,7 @@ class RagQuestionAnsweringService(
     },
 ) {
     suspend fun answer(
-        requestId: String? = null,
+        requestId: String,
         question: String,
         databasePath: Path,
         strategy: ChunkingStrategy,
@@ -48,9 +47,8 @@ class RagQuestionAnsweringService(
         finalTopK: Int,
         config: AppConfig,
     ): RagAnswer {
-        val effectiveRequestId = requestId ?: "rag-${UUID.randomUUID()}"
         traceSink.emitRecord(
-            requestId = effectiveRequestId,
+            requestId = requestId,
             kind = "rag_request_started",
             stage = "rag.answer",
             payload = tracePayload {
@@ -63,7 +61,7 @@ class RagQuestionAnsweringService(
             },
         )
         val retrievalResult = retrievalPipelineService.retrieve(
-            requestId = effectiveRequestId,
+            requestId = requestId,
             query = question,
             databasePath = databasePath,
             strategy = strategy,
@@ -74,7 +72,7 @@ class RagQuestionAnsweringService(
         val selectedMatches = retrievalResult.selectedMatches
         val guardDecision = evaluateAnswerGuard(selectedMatches, config.answerGuard)
         traceSink.emitRecord(
-            requestId = effectiveRequestId,
+            requestId = requestId,
             kind = "answer_guard_checked",
             stage = "rag.answer_guard",
             payload = tracePayload {
@@ -90,7 +88,7 @@ class RagQuestionAnsweringService(
 
         if (!guardDecision.allowed) {
             return buildLoggedAnswer(
-                requestId = effectiveRequestId,
+                requestId = requestId,
                 ragAnswer = RagAnswer(
                     answer = REFUSAL_ANSWER,
                     sources = emptyList(),
@@ -116,7 +114,7 @@ class RagQuestionAnsweringService(
             ),
         )
         traceSink.emitRecord(
-            requestId = effectiveRequestId,
+            requestId = requestId,
             kind = "answer_llm_completed",
             stage = "rag.answer_llm",
             payload = tracePayload {
@@ -136,7 +134,7 @@ class RagQuestionAnsweringService(
                 failureKind = "invalid_json_or_missing_required_fields",
             )
             return buildLoggedAnswer(
-                requestId = effectiveRequestId,
+                requestId = requestId,
                 ragAnswer = RagAnswer(
                     answer = parseFailureAnswer(),
                     sources = buildSources(selectedMatches),
@@ -151,7 +149,7 @@ class RagQuestionAnsweringService(
         if (parsedCompletion.quotes.isEmpty()) {
             if (looksLikeRefusal(parsedCompletion.answer)) {
                 return buildLoggedAnswer(
-                    requestId = effectiveRequestId,
+                    requestId = requestId,
                     ragAnswer = RagAnswer(
                         answer = parsedCompletion.answer,
                         sources = emptyList(),
@@ -171,7 +169,7 @@ class RagQuestionAnsweringService(
                 failureKind = "missing_quotes",
             )
             return buildLoggedAnswer(
-                requestId = effectiveRequestId,
+                requestId = requestId,
                 ragAnswer = RagAnswer(
                     answer = MISSING_QUOTES_ANSWER,
                     sources = buildSources(selectedMatches),
@@ -183,7 +181,7 @@ class RagQuestionAnsweringService(
         }
 
         return buildLoggedAnswer(
-            requestId = effectiveRequestId,
+            requestId = requestId,
             ragAnswer = RagAnswer(
                 answer = parsedCompletion.answer,
                 sources = buildSources(selectedMatches),
@@ -348,14 +346,14 @@ class RagQuestionAnsweringService(
     }
 
     private fun parseFailureAnswer(): String =
-        "Не знаю. Уточните вопрос: модель вернула невалидный JSON или пустой обязательный ответ."
+        "РќРµ Р·РЅР°СЋ. РЈС‚РѕС‡РЅРёС‚Рµ РІРѕРїСЂРѕСЃ: РјРѕРґРµР»СЊ РІРµСЂРЅСѓР»Р° РЅРµРІР°Р»РёРґРЅС‹Р№ JSON РёР»Рё РїСѓСЃС‚РѕР№ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Р№ РѕС‚РІРµС‚."
 
     private fun looksLikeRefusal(answer: String): Boolean {
         val normalized = answer.lowercase()
-        return normalized.contains("не знаю") ||
-            normalized.contains("уточните вопрос") ||
-            normalized.contains("недостаточно данных") ||
-            normalized.contains("не могу ответить") ||
+        return normalized.contains("РЅРµ Р·РЅР°СЋ") ||
+            normalized.contains("СѓС‚РѕС‡РЅРёС‚Рµ РІРѕРїСЂРѕСЃ") ||
+            normalized.contains("РЅРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РґР°РЅРЅС‹С…") ||
+            normalized.contains("РЅРµ РјРѕРіСѓ РѕС‚РІРµС‚РёС‚СЊ") ||
             normalized.contains("insufficient context")
     }
 
@@ -402,11 +400,11 @@ class RagQuestionAnsweringService(
         private const val USER_ROLE = "user"
         private const val MAX_QUOTES = 1
         private const val REFUSAL_ANSWER =
-            "Не знаю. Уточните вопрос: в найденном контексте недостаточно данных для уверенного ответа."
+            "РќРµ Р·РЅР°СЋ. РЈС‚РѕС‡РЅРёС‚Рµ РІРѕРїСЂРѕСЃ: РІ РЅР°Р№РґРµРЅРЅРѕРј РєРѕРЅС‚РµРєСЃС‚Рµ РЅРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РґР°РЅРЅС‹С… РґР»СЏ СѓРІРµСЂРµРЅРЅРѕРіРѕ РѕС‚РІРµС‚Р°."
         private const val MISSING_QUOTES_ANSWER =
-            "Не удалось надёжно ответить по найденному контексту."
+            "РќРµ СѓРґР°Р»РѕСЃСЊ РЅР°РґС‘Р¶РЅРѕ РѕС‚РІРµС‚РёС‚СЊ РїРѕ РЅР°Р№РґРµРЅРЅРѕРјСѓ РєРѕРЅС‚РµРєСЃС‚Сѓ."
         private const val MISSING_QUOTES_WARNING =
-            "Не удалось подтвердить этот ответ цитатой из найденного контекста."
+            "РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕРґС‚РІРµСЂРґРёС‚СЊ СЌС‚РѕС‚ РѕС‚РІРµС‚ С†РёС‚Р°С‚РѕР№ РёР· РЅР°Р№РґРµРЅРЅРѕРіРѕ РєРѕРЅС‚РµРєСЃС‚Р°."
         private val SYSTEM_PROMPT = """
             You are a retrieval-grounded assistant.
             Return exactly one JSON object and nothing else.
@@ -426,7 +424,7 @@ class RagQuestionAnsweringService(
             - Pick the single best quote that most directly supports the answer.
             - Answer in the same language as the question.
             - Do not add markdown, code fences, explanations, or extra keys.
-            - If you cannot support the answer with one direct quote, return a refusal like "Не знаю. Уточните вопрос: ..." and leave quotes empty.
+            - If you cannot support the answer with one direct quote, return a refusal like "РќРµ Р·РЅР°СЋ. РЈС‚РѕС‡РЅРёС‚Рµ РІРѕРїСЂРѕСЃ: ..." and leave quotes empty.
         """.trimIndent()
     }
 

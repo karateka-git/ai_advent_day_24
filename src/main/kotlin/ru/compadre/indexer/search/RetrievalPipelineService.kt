@@ -21,7 +21,6 @@ import ru.compadre.indexer.trace.putInt
 import ru.compadre.indexer.trace.putString
 import ru.compadre.indexer.trace.tracePayload
 import java.nio.file.Path
-import java.util.UUID
 
 /**
  * Orchestrates the shared retrieval pipeline: vector search plus post-processing.
@@ -36,7 +35,7 @@ class RetrievalPipelineService(
     private val modelRerankPostRetrievalProcessor: PostRetrievalProcessor = ModelRerankPostRetrievalProcessor(traceSink = traceSink),
 ) {
     suspend fun retrieve(
-        requestId: String? = null,
+        requestId: String,
         query: String,
         databasePath: Path,
         strategy: ChunkingStrategy?,
@@ -44,7 +43,6 @@ class RetrievalPipelineService(
         finalTopK: Int,
         config: AppConfig,
     ): RetrievalPipelineResult {
-        val effectiveRequestId = requestId ?: "retrieval-${UUID.randomUUID()}"
         require(initialTopK > 0) { "Параметр initialTopK должен быть больше 0." }
         require(finalTopK > 0) { "Параметр finalTopK должен быть больше 0." }
 
@@ -61,7 +59,7 @@ class RetrievalPipelineService(
             config = config,
         )
         traceSink.emitRecord(
-            requestId = effectiveRequestId,
+            requestId = requestId,
             kind = "embedding_candidates_built",
             stage = "retrieval.embedding_search",
             payload = tracePayload {
@@ -91,7 +89,7 @@ class RetrievalPipelineService(
         )
 
         val request = PostRetrievalRequest(
-            requestId = effectiveRequestId,
+            requestId = requestId,
             query = query,
             strategy = strategy,
             initialTopK = initialTopK,
@@ -132,7 +130,7 @@ class RetrievalPipelineService(
         }
 
         traceSink.emitRecord(
-            requestId = effectiveRequestId,
+            requestId = requestId,
             kind = "selected_matches_built",
             stage = "retrieval.postprocess",
             payload = tracePayload {
