@@ -35,6 +35,7 @@ import ru.compadre.indexer.workflow.result.IndexPersistResult
 import ru.compadre.indexer.workflow.result.AskResult
 import ru.compadre.indexer.workflow.result.SearchResult
 import java.nio.file.Path
+import java.util.UUID
 
 /**
  * Стартовая реализация обработчика команд для этапов загрузки корпуса, chunking, embeddings и SQLite storage.
@@ -258,6 +259,7 @@ class DefaultWorkflowCommandHandler(
             )
 
             "rag" -> {
+                val requestId = newRequestId("ask-rag")
                 val strategy = command.strategy ?: ChunkingStrategy.FIXED
                 val finalTopK = command.topK ?: config.search.finalTopK
                 val initialTopK = maxOf(config.search.initialTopK, finalTopK)
@@ -267,6 +269,7 @@ class DefaultWorkflowCommandHandler(
                     allStrategies = false,
                 )
                 val ragAnswer = ragQuestionAnsweringService.answer(
+                    requestId = requestId,
                     question = command.query,
                     databasePath = databasePath,
                     strategy = strategy,
@@ -301,6 +304,7 @@ class DefaultWorkflowCommandHandler(
         showAllCandidates: Boolean,
         config: AppConfig,
     ): SearchResult {
+        val requestId = newRequestId("search")
         val effectiveStrategy = strategy ?: ChunkingStrategy.FIXED
         val finalTopK = topK ?: config.search.finalTopK
         val initialTopK = maxOf(config.search.initialTopK, finalTopK)
@@ -310,6 +314,7 @@ class DefaultWorkflowCommandHandler(
             allStrategies = false,
         )
         val retrievalResult = retrievalPipelineService.retrieve(
+            requestId = requestId,
             query = query,
             databasePath = databasePath,
             strategy = effectiveStrategy,
@@ -346,4 +351,6 @@ class DefaultWorkflowCommandHandler(
     private companion object {
         private const val EMBEDDING_PREVIEW_LIMIT = 3
     }
+
+    private fun newRequestId(prefix: String): String = "$prefix-${UUID.randomUUID()}"
 }

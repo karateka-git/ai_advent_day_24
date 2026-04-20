@@ -40,6 +40,7 @@ class RagQuestionAnsweringService(
     },
 ) {
     suspend fun answer(
+        requestId: String? = null,
         question: String,
         databasePath: Path,
         strategy: ChunkingStrategy,
@@ -47,9 +48,9 @@ class RagQuestionAnsweringService(
         finalTopK: Int,
         config: AppConfig,
     ): RagAnswer {
-        val requestId = "rag-${UUID.randomUUID()}"
+        val effectiveRequestId = requestId ?: "rag-${UUID.randomUUID()}"
         traceSink.emitRecord(
-            requestId = requestId,
+            requestId = effectiveRequestId,
             kind = "rag_request_started",
             stage = "rag.answer",
             payload = tracePayload {
@@ -62,7 +63,7 @@ class RagQuestionAnsweringService(
             },
         )
         val retrievalResult = retrievalPipelineService.retrieve(
-            requestId = requestId,
+            requestId = effectiveRequestId,
             query = question,
             databasePath = databasePath,
             strategy = strategy,
@@ -73,7 +74,7 @@ class RagQuestionAnsweringService(
         val selectedMatches = retrievalResult.selectedMatches
         val guardDecision = evaluateAnswerGuard(selectedMatches, config.answerGuard)
         traceSink.emitRecord(
-            requestId = requestId,
+            requestId = effectiveRequestId,
             kind = "answer_guard_checked",
             stage = "rag.answer_guard",
             payload = tracePayload {
@@ -89,15 +90,15 @@ class RagQuestionAnsweringService(
 
         if (!guardDecision.allowed) {
             return buildLoggedAnswer(
-                requestId = requestId,
+                requestId = effectiveRequestId,
                 ragAnswer = RagAnswer(
-                answer = REFUSAL_ANSWER,
-                sources = emptyList(),
-                quotes = emptyList(),
-                isRefusal = true,
-                refusalReason = guardDecision.reason,
-                retrievalResult = retrievalResult,
-            ),
+                    answer = REFUSAL_ANSWER,
+                    sources = emptyList(),
+                    quotes = emptyList(),
+                    isRefusal = true,
+                    refusalReason = guardDecision.reason,
+                    retrievalResult = retrievalResult,
+                ),
             )
         }
 
@@ -115,7 +116,7 @@ class RagQuestionAnsweringService(
             ),
         )
         traceSink.emitRecord(
-            requestId = requestId,
+            requestId = effectiveRequestId,
             kind = "answer_llm_completed",
             stage = "rag.answer_llm",
             payload = tracePayload {
@@ -135,30 +136,30 @@ class RagQuestionAnsweringService(
                 failureKind = "invalid_json_or_missing_required_fields",
             )
             return buildLoggedAnswer(
-                requestId = requestId,
+                requestId = effectiveRequestId,
                 ragAnswer = RagAnswer(
-                answer = parseFailureAnswer(),
-                sources = buildSources(selectedMatches),
-                quotes = emptyList(),
-                isRefusal = true,
-                refusalReason = "llm_response_invalid_json_or_missing_required_fields",
-                retrievalResult = retrievalResult,
-            ),
+                    answer = parseFailureAnswer(),
+                    sources = buildSources(selectedMatches),
+                    quotes = emptyList(),
+                    isRefusal = true,
+                    refusalReason = "llm_response_invalid_json_or_missing_required_fields",
+                    retrievalResult = retrievalResult,
+                ),
             )
         }
 
         if (parsedCompletion.quotes.isEmpty()) {
             if (looksLikeRefusal(parsedCompletion.answer)) {
                 return buildLoggedAnswer(
-                    requestId = requestId,
+                    requestId = effectiveRequestId,
                     ragAnswer = RagAnswer(
-                    answer = parsedCompletion.answer,
-                    sources = emptyList(),
-                    quotes = emptyList(),
-                    isRefusal = true,
-                    refusalReason = "llm_refusal_due_to_missing_grounding_quote",
-                    retrievalResult = retrievalResult,
-                ),
+                        answer = parsedCompletion.answer,
+                        sources = emptyList(),
+                        quotes = emptyList(),
+                        isRefusal = true,
+                        refusalReason = "llm_refusal_due_to_missing_grounding_quote",
+                        retrievalResult = retrievalResult,
+                    ),
                 )
             }
 
@@ -170,25 +171,25 @@ class RagQuestionAnsweringService(
                 failureKind = "missing_quotes",
             )
             return buildLoggedAnswer(
-                requestId = requestId,
+                requestId = effectiveRequestId,
                 ragAnswer = RagAnswer(
-                answer = MISSING_QUOTES_ANSWER,
-                sources = buildSources(selectedMatches),
-                quotes = emptyList(),
-                warningMessage = MISSING_QUOTES_WARNING,
-                retrievalResult = retrievalResult,
-            ),
+                    answer = MISSING_QUOTES_ANSWER,
+                    sources = buildSources(selectedMatches),
+                    quotes = emptyList(),
+                    warningMessage = MISSING_QUOTES_WARNING,
+                    retrievalResult = retrievalResult,
+                ),
             )
         }
 
         return buildLoggedAnswer(
-            requestId = requestId,
+            requestId = effectiveRequestId,
             ragAnswer = RagAnswer(
-            answer = parsedCompletion.answer,
-            sources = buildSources(selectedMatches),
-            quotes = parsedCompletion.quotes,
-            retrievalResult = retrievalResult,
-        ),
+                answer = parsedCompletion.answer,
+                sources = buildSources(selectedMatches),
+                quotes = parsedCompletion.quotes,
+                retrievalResult = retrievalResult,
+            ),
         )
     }
 
