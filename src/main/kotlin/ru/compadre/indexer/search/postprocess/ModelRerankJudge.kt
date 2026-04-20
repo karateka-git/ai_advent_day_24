@@ -13,8 +13,8 @@ import ru.compadre.indexer.model.DocumentChunk
 class ModelRerankJudge(
     private val llmClient: ExternalLlmClient = ExternalLlmClient(),
     private val json: Json = Json { ignoreUnknownKeys = true },
-) {
-    fun buildPrompt(
+) : ModelRerankScorer {
+    override fun buildPrompt(
         query: String,
         chunk: DocumentChunk,
         config: LlmSection,
@@ -36,7 +36,7 @@ class ModelRerankJudge(
     /**
      * Requests a model-based relevance score in the `0..100` range.
      */
-    fun score(
+    override fun score(
         prompt: ModelRerankPrompt,
         fallbackCosineScore: Double,
     ): ModelRerankEvaluation {
@@ -101,6 +101,19 @@ class ModelRerankJudge(
                 "Верни только JSON объекта вида {\"score\": число_от_0_до_100}. " +
                 "Никакого дополнительного текста, markdown и комментариев."
     }
+}
+
+interface ModelRerankScorer {
+    fun buildPrompt(
+        query: String,
+        chunk: DocumentChunk,
+        config: LlmSection,
+    ): ModelRerankPrompt
+
+    fun score(
+        prompt: ModelRerankPrompt,
+        fallbackCosineScore: Double,
+    ): ModelRerankEvaluation
 }
 
 data class ModelRerankPrompt(

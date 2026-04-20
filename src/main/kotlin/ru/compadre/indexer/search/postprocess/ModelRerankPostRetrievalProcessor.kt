@@ -20,7 +20,7 @@ import ru.compadre.indexer.trace.tracePayload
  * Model-based reranker over vector-search candidates.
  */
 class ModelRerankPostRetrievalProcessor(
-    private val modelRerankJudge: ModelRerankJudge = ModelRerankJudge(),
+    private val modelRerankJudge: ModelRerankScorer = ModelRerankJudge(),
     private val traceSink: TraceSink = NoOpTraceSink,
 ) : PostRetrievalProcessor {
     override suspend fun process(
