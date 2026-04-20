@@ -57,10 +57,12 @@ class ModelRerankPostRetrievalProcessor(
                     putString("inputText", prompt.messages.lastOrNull()?.content)
                 },
             )
+            val startedAt = System.nanoTime()
             val evaluation = modelRerankJudge.score(
                 prompt = prompt,
                 fallbackCosineScore = match.score,
             )
+            val durationMs = (System.nanoTime() - startedAt) / 1_000_000
             traceSink.emitRecord(
                 requestId = request.requestId,
                 kind = "model_rerank_scored",
@@ -72,6 +74,7 @@ class ModelRerankPostRetrievalProcessor(
                     putString("section", chunk.metadata.section)
                     putDouble("cosineScore", match.score)
                     putDouble("modelScore", evaluation.score)
+                    putDouble("durationMs", durationMs.toDouble())
                     putBoolean("usedFallback", evaluation.usedFallback)
                     putString("rawResponse", evaluation.rawResponse)
                 },

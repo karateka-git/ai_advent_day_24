@@ -78,6 +78,7 @@ class RagQuestionAnsweringService(
             kind = "answer_guard_checked",
             stage = "rag.answer_guard",
             payload = tracePayload {
+                putString("decision", if (guardDecision.allowed) "allow" else "refuse")
                 putBoolean("allowed", guardDecision.allowed)
                 putString("reason", guardDecision.reason)
                 putInt("selectedMatchesCount", selectedMatches.size)
@@ -89,6 +90,19 @@ class RagQuestionAnsweringService(
         )
 
         if (!guardDecision.allowed) {
+            traceSink.emitRecord(
+                requestId = requestId,
+                kind = "answer_parse_result",
+                stage = "rag.answer_parse",
+                payload = tracePayload {
+                    putString("status", "guard_refused")
+                    putBoolean("hasAnswer", true)
+                    putBoolean("hasQuotes", false)
+                    putString("warningMessage", null)
+                    putString("refusalReason", guardDecision.reason)
+                    putString("outcome", "guard_refusal")
+                },
+            )
             return buildLoggedAnswer(
                 requestId = requestId,
                 ragAnswer = RagAnswer(
@@ -125,10 +139,12 @@ class RagQuestionAnsweringService(
                 put("messages", chatMessagesTracePayload(messages))
             },
         )
+        val llmStartedAt = System.nanoTime()
         val completion = llmClient.complete(
             config = config.llm,
             messages = messages,
         )
+        val llmDurationMs = (System.nanoTime() - llmStartedAt) / 1_000_000
         traceSink.emitRecord(
             requestId = requestId,
             kind = "answer_llm_completed",
@@ -136,12 +152,26 @@ class RagQuestionAnsweringService(
             payload = tracePayload {
                 putString("question", question)
                 put("selectedChunkIds", jsonArrayOfStrings(selectedMatches.map { it.embeddedChunk.chunk.metadata.chunkId }))
+                putDouble("durationMs", llmDurationMs.toDouble())
                 putString("rawCompletion", completion)
             },
         )
         val parsedCompletion = parseModelCompletion(completion)
 
         if (parsedCompletion == null) {
+            traceSink.emitRecord(
+                requestId = requestId,
+                kind = "answer_parse_result",
+                stage = "rag.answer_parse",
+                payload = tracePayload {
+                    putString("status", "failure")
+                    putBoolean("hasAnswer", false)
+                    putBoolean("hasQuotes", false)
+                    putString("warningMessage", null)
+                    putString("refusalReason", "llm_response_invalid_json_or_missing_required_fields")
+                    putString("outcome", "invalid_json_or_missing_required_fields")
+                },
+            )
             logInvalidModelCompletion(
                 outputDir = config.app.outputDir,
                 question = question,
@@ -164,6 +194,19 @@ class RagQuestionAnsweringService(
 
         if (parsedCompletion.quotes.isEmpty()) {
             if (looksLikeRefusal(parsedCompletion.answer)) {
+                traceSink.emitRecord(
+                    requestId = requestId,
+                    kind = "answer_parse_result",
+                    stage = "rag.answer_parse",
+                    payload = tracePayload {
+                        putString("status", "success")
+                        putBoolean("hasAnswer", true)
+                        putBoolean("hasQuotes", false)
+                        putString("warningMessage", null)
+                        putString("refusalReason", "llm_refusal_due_to_missing_grounding_quote")
+                        putString("outcome", "model_refusal_without_quotes")
+                    },
+                )
                 return buildLoggedAnswer(
                     requestId = requestId,
                     ragAnswer = RagAnswer(
@@ -177,6 +220,19 @@ class RagQuestionAnsweringService(
                 )
             }
 
+            traceSink.emitRecord(
+                requestId = requestId,
+                kind = "answer_parse_result",
+                stage = "rag.answer_parse",
+                payload = tracePayload {
+                    putString("status", "success")
+                    putBoolean("hasAnswer", true)
+                    putBoolean("hasQuotes", false)
+                    putString("warningMessage", MISSING_QUOTES_WARNING)
+                    putString("refusalReason", null)
+                    putString("outcome", "missing_quotes_fallback")
+                },
+            )
             logInvalidModelCompletion(
                 outputDir = config.app.outputDir,
                 question = question,
@@ -196,6 +252,19 @@ class RagQuestionAnsweringService(
             )
         }
 
+        traceSink.emitRecord(
+            requestId = requestId,
+            kind = "answer_parse_result",
+            stage = "rag.answer_parse",
+            payload = tracePayload {
+                putString("status", "success")
+                putBoolean("hasAnswer", true)
+                putBoolean("hasQuotes", true)
+                putString("warningMessage", null)
+                putString("refusalReason", null)
+                putString("outcome", "grounded_answer")
+            },
+        )
         return buildLoggedAnswer(
             requestId = requestId,
             ragAnswer = RagAnswer(
